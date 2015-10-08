@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
-	"flag"
 	"net"
 	"bufio"
 	"os"
+	"github.com/jawher/mow.cli"
 )
 
+const (
+	VERSION = "0.1.0dev"
+)
 
 func exec_command(server string, command string) {
 	conn, err := net.Dial("tcp", server)
@@ -42,39 +45,31 @@ func get(server string, key string) {
 	exec_command(server, command)
 }
 
-func assert_arg_length(length int) {
-	args := flag.Args()
-	if len(args) < length {
-		flag.Usage()
-		os.Exit(0)
-	}
-}
-
 func main() {
-	flag.Usage = func() {
-		fmt.Printf("Usage: memclient [options] command\n")
-		fmt.Println("commands:")
-		fmt.Println("  set [key] [value]")
-		fmt.Println("    Sets a key value pair")
-		fmt.Println("  get [key]")
-		fmt.Println("    Retrieves a key")
-		fmt.Println("options:")
-		flag.PrintDefaults()
-	}
+	cp := cli.App("memclient", "Simple command-line client for Memcached")
+	host := cp.StringOpt("host h", "localhost", "Memcached host (or IP)")
+	port := cp.StringOpt("port p", "11211", "Memcached port")
 
-	server := flag.String("server", "localhost:11211", "Memcached server:port")
-	//	exec_command(*server, "stats")
-	flag.Parse()
-	args := flag.Args()
-	assert_arg_length(1)
+	cp.Command("set", "Sets a key value pair", func(cmd *cli.Cmd) {
+		key := cmd.StringArg("KEY", "", "Key to set a value for")
+		value := cmd.StringArg("VALUE", "", "Value to set")
+		cmd.Action = func() {
+			server := *host + ":" + *port
+			set(server, *key, *value)
+		}
+	})
+	cp.Command("get", "Retrieves a key", func(cmd *cli.Cmd) {
+		key := cmd.StringArg("KEY", "", "Key to set a value for")
+		cmd.Action = func() {
+			server := *host + ":" + *port
+			get(server, *key)
+		}
+	})
+	cp.Command("version", "Prints the version", func(cmd *cli.Cmd) {
+		cmd.Action = func() {
+			fmt.Println("memclient, version", VERSION)
+		}
+	})
 
-	command := args[0]
-	switch command {
-	case "set":
-		assert_arg_length(3)
-		set(*server, args[1], args[2])
-	case "get":
-		assert_arg_length(2)
-		get(*server, args[1])
-	}
+	cp.Run(os.Args)
 }

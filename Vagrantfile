@@ -4,11 +4,17 @@
 VAGRANTFILE_API_VERSION = "2"
 
 INSTALL_DEPS=<<EOF
+apt-get install memcached
 
+# Install Go
 wget https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.5.1.linux-amd64.tar.gz
 
+mkdir -p /opt/go
+chmod 777 -R /opt/go
+
 echo 'export GOROOT"=/usr/local/go"' > /etc/profile.d/go.sh
+echo 'export GOPATH"=/opt/go"' >> /etc/profile.d/go.sh
 echo 'export PATH="$PATH:$GOROOT/bin"' >> /etc/profile.d/go.sh
 
 grep 'cd /vagrant' /home/vagrant/.bashrc ||
