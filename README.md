@@ -63,6 +63,10 @@ go run memclient.go get foo
 go build memclient.go
 ```
 
+To run tests:
+```
+go test
+```
 
 Memclient uses the [Memcached protocol](https://github.com/memcached/memcached/blob/master/doc/protocol.txt) to
 talk to a memcached server.
