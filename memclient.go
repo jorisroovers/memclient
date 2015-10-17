@@ -12,9 +12,18 @@ const (
 	VERSION = "0.1.0dev"
 )
 
-type  memClient struct {
-	server     string
+type CommandExecuter interface {
+	execute(command string) []string
+	Close()
+}
+
+type MemcachedCommandExecuter struct {
 	connection net.Conn
+}
+
+type  memClient struct {
+	server   string
+	executer CommandExecuter
 }
 
 func MemClient(server string) (*memClient, error) {
@@ -24,43 +33,49 @@ func MemClient(server string) (*memClient, error) {
 	}
 	return &memClient{
 		server: server,
-		connection: conn,
+		executer: &MemcachedCommandExecuter{
+			connection: conn,
+		},
 	}, nil
 }
 
 func (client *memClient) Close() {
-	if client != nil {
-		client.Close()
+	if client.executer != nil {
+		client.executer.Close()
 	}
 }
 
-/*
- * Executes a memcached command and returns the server output.
- */
-func (client *memClient) exec_command(command string) {
-	fmt.Fprintf(client.connection, command + "\r\n")
-	scanner := bufio.NewScanner(client.connection)
+func (executer *MemcachedCommandExecuter) execute(command string) []string {
+	fmt.Fprintf(executer.connection, command + "\r\n")
+	scanner := bufio.NewScanner(executer.connection)
+	var result []string
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "END" || line == "STORED" {
 			break
 		}
-		fmt.Println(line)
+		result = append(result, line)
 	}
-
-	fmt.Fprintf(client.connection, "quit\r\n")
+	fmt.Fprintf(executer.connection, "quit\r\n")
+	return result
 }
+
+func (executer *MemcachedCommandExecuter) Close() {
+	executer.connection.Close()
+}
+
 
 func (client *memClient) Set(key string, value string) {
 	flags := "0" // TODO(jorisroovers): support flags
 	expiration := 0 // 0 = unlimited
 	command := fmt.Sprintf("set %s %s %d %d\r\n%s", key, flags, expiration, len(value), value)
-	client.exec_command(command)
+	client.executer.execute(command)
 }
 
-func (client *memClient) Get(key string) {
+func (client *memClient) Get(key string) string {
 	command := fmt.Sprintf("get %s\r\n", key)
-	client.exec_command(command)
+	result := client.executer.execute(command)
+	return result[1]
 }
 
 func createClient(host, port *string) (*memClient) {
@@ -92,7 +107,7 @@ func main() {
 		key := cmd.StringArg("KEY", "", "Key to set a value for")
 		cmd.Action = func() {
 			client := createClient(host, port)
-			client.Get(*key)
+			fmt.Println(client.Get(*key))
 			client.Close()
 		}
 	})
