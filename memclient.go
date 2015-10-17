@@ -5,6 +5,8 @@ import (
 	"net"
 	"bufio"
 	"os"
+	"regexp"
+	"strconv"
 	"github.com/jawher/mow.cli"
 )
 
@@ -56,7 +58,6 @@ func (executer *MemcachedCommandExecuter) execute(command string) []string {
 		}
 		result = append(result, line)
 	}
-	fmt.Fprintf(executer.connection, "quit\r\n")
 	return result
 }
 
@@ -80,6 +81,38 @@ func (client *memClient) Get(key string) string {
 	}
 	return "[NOT FOUND]"
 }
+
+
+func (client *memClient) ListKeys() []string {
+	keys := []string{}
+	result := client.executer.execute("stats items\r\n")
+
+	// identify all slabs and their number of items by parsing the 'stats items' command
+	r, _ := regexp.Compile("STAT items:([0-9]*):number ([0-9]*)")
+	slabCounts := map[int]int{}
+	for _, stat := range result {
+		matches := r.FindStringSubmatch(stat)
+		if len(matches) == 3 {
+			slabId, _ := strconv.Atoi(matches[1])
+			slabItemCount, _ := strconv.Atoi(matches[2])
+			slabCounts[slabId] = slabItemCount
+		}
+	}
+
+	// For each slab, dump all items and add each key to the `keys` slice
+	r, _ = regexp.Compile("ITEM (.*?) .*")
+	for slabId, slabCount := range slabCounts {
+		command := fmt.Sprintf("stats cachedump %v %v\n", slabId, slabCount)
+		commandResult := client.executer.execute(command)
+		for _, item := range commandResult {
+			matches := r.FindStringSubmatch(item)
+			keys = append(keys, matches[1])
+		}
+	}
+
+	return keys
+}
+
 
 func createClient(host, port *string) (*memClient) {
 	server := *host + ":" + *port
@@ -111,6 +144,16 @@ func main() {
 		cmd.Action = func() {
 			client := createClient(host, port)
 			fmt.Println(client.Get(*key))
+			client.Close()
+		}
+	})
+	cp.Command("list", "Lists all keys", func(cmd *cli.Cmd) {
+		cmd.Action = func() {
+			client := createClient(host, port)
+			keys := client.ListKeys()
+			for _, item := range keys {
+				fmt.Println(item)
+			}
 			client.Close()
 		}
 	})

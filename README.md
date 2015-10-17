@@ -1,4 +1,6 @@
 # memclient #
+[![Build Status](https://travis-ci.org/jorisroovers/memclient.svg?branch=master)]
+(https://travis-ci.org/jorisroovers/memclient)
 
 Memclient is a simple memcached commandline client written in Go.
 
@@ -27,13 +29,14 @@ Usage: memclient [OPTIONS] COMMAND [arg...]
 Simple command-line client for Memcached
 
 Options:
+  -v, --version=false      Show the version and exit
   --host, -h="localhost"   Memcached host (or IP)
   --port, -p="11211"       Memcached port
 
 Commands:
   set          Sets a key value pair
   get          Retrieves a key
-  version      Prints the version
+  list         Lists all keys
 
 Run 'memclient COMMAND --help' for more information on a command.
 ```
