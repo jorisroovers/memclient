@@ -75,7 +75,10 @@ func (client *memClient) Set(key string, value string) {
 func (client *memClient) Get(key string) string {
 	command := fmt.Sprintf("get %s\r\n", key)
 	result := client.executer.execute(command)
-	return result[1]
+	if len(result) == 2 {
+		return result[1]
+	}
+	return "[NOT FOUND]"
 }
 
 func createClient(host, port *string) (*memClient) {

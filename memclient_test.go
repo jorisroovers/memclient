@@ -8,10 +8,15 @@ import (
 type MockedCommandExecuter struct {
 	t               *testing.T
 	executedCommand string
+	closed          bool
 }
 
-func (executer *MockedCommandExecuter) execute(command string) {
+func (executer *MockedCommandExecuter) execute(command string) []string {
 	executer.executedCommand = command
+	return []string{}
+}
+
+func (executer *MockedCommandExecuter) Close() {
 }
 
 func (executer *MockedCommandExecuter) assertCommand(expectedCommand string) {
@@ -21,7 +26,7 @@ func (executer *MockedCommandExecuter) assertCommand(expectedCommand string) {
 }
 
 func createTestClient(t *testing.T) (*memClient, *MockedCommandExecuter) {
-	executer := &MockedCommandExecuter{t, ""}
+	executer := &MockedCommandExecuter{t, "", false}
 	client := &memClient{
 		server: "foo",
 		executer: executer,
