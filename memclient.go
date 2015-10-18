@@ -14,6 +14,10 @@ const (
 	VERSION = "0.1.0dev"
 )
 
+/*
+	The CommandExecuter interface defines an entity that is able to execute memcached
+	commands against a memcached server.
+ */
 type CommandExecuter interface {
 	execute(command string) []string
 	Close()
@@ -65,7 +69,6 @@ func (executer *MemcachedCommandExecuter) Close() {
 	executer.connection.Close()
 }
 
-
 func (client *memClient) Set(key string, value string) {
 	flags := "0" // TODO(jorisroovers): support flags
 	expiration := 0 // 0 = unlimited
@@ -81,7 +84,6 @@ func (client *memClient) Get(key string) string {
 	}
 	return "[NOT FOUND]"
 }
-
 
 func (client *memClient) ListKeys() []string {
 	keys := []string{}
@@ -114,6 +116,9 @@ func (client *memClient) ListKeys() []string {
 }
 
 
+/*
+	Creates a memClient and deals with any errors that might occur (e.g. unable to connect to server).
+ */
 func createClient(host, port *string) (*memClient) {
 	server := *host + ":" + *port
 	client, err := MemClient(server)
@@ -124,6 +129,11 @@ func createClient(host, port *string) (*memClient) {
 	return client
 }
 
+/*
+	This is where the magic happens.
+	Creates a CLI app using mow.cli and to calls the appropriate functions on a Memclient instance according to the
+	passed parameters.
+ */
 func main() {
 	cp := cli.App("memclient", "Simple command-line client for Memcached")
 	cp.Version("v version", "memclient " + VERSION)

@@ -79,10 +79,10 @@ Memclient uses the [Memcached protocol](https://github.com/memcached/memcached/b
 talk to a memcached server.
 
 # Wishlist #
-- Listing all keys
 - Pretty command output
 - Better error handling
-- Unit tests!
 - Support for other memcached commands
+- Support for additional command options
 - Use GoDep for dependency management
+- Have a look at [GoDownDoc](https://github.com/robertkrimen/godocdown) for README generation from ```doc.go```
 - ...

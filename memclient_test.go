@@ -1,32 +1,45 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
 // Test Helpers
 type MockedCommandExecuter struct {
-	t               *testing.T
-	executedCommand string
-	closed          bool
+	t                *testing.T
+	executedCommands []string
+	returnValues     map[string][]string
+	closed           bool
 }
 
 func (executer *MockedCommandExecuter) execute(command string) []string {
-	executer.executedCommand = command
+	executer.executedCommands = append(executer.executedCommands, command)
+	returnVal, ok := executer.returnValues[command]
+	if ok {
+		return returnVal
+	}
 	return []string{}
 }
 
 func (executer *MockedCommandExecuter) Close() {
 }
 
-func (executer *MockedCommandExecuter) assertCommand(expectedCommand string) {
-	if executer.executedCommand != expectedCommand {
-		executer.t.Errorf("Executed command was '%v', expected '%v'", executer.executedCommand, expectedCommand)
+func (executer *MockedCommandExecuter) addReturnValue(command string, returnValue []string) {
+	executer.returnValues[command] = returnValue
+}
+
+/*
+	Asserts that a given slice of commands have been called executed against the command executer.
+ */
+func (executer *MockedCommandExecuter) assertCommands(expectedCommands []string) {
+	if !reflect.DeepEqual(executer.executedCommands, expectedCommands) {
+		executer.t.Errorf("Executed command were '%v', expected '%v'", executer.executedCommands, expectedCommands)
 	}
 }
 
 func createTestClient(t *testing.T) (*memClient, *MockedCommandExecuter) {
-	executer := &MockedCommandExecuter{t, "", false}
+	executer := &MockedCommandExecuter{t, []string{}, map[string][]string{}, false}
 	client := &memClient{
 		server: "foo",
 		executer: executer,
@@ -46,11 +59,28 @@ func TestMemClient(t *testing.T) {
 func TestGet(t *testing.T) {
 	client, executer := createTestClient(t)
 	client.Get("testkey")
-	executer.assertCommand("get testkey\r\n")
+	executer.assertCommands([]string{"get testkey\r\n"})
 }
 
 func TestSet(t *testing.T) {
 	client, executer := createTestClient(t)
 	client.Set("testkey", "testval")
-	executer.assertCommand("set testkey 0 0 7\r\ntestval")
+	executer.assertCommands([]string{"set testkey 0 0 7\r\ntestval"})
+}
+
+func TestListKeys(t *testing.T) {
+	// setup testcase
+	client, executer := createTestClient(t)
+	executer.addReturnValue("stats items\r\n", []string{"STAT items:123:number 456"})
+	executer.addReturnValue("stats cachedump 123 456\n", []string{"ITEM foobar ignored", "ITEM testkey ignored"})
+
+	keys := client.ListKeys()
+
+	// validate that the result is correct and that the expected commands where executed
+	expectedKeys := []string{"foobar", "testkey"}
+	if (!reflect.DeepEqual(keys, expectedKeys)) {
+		t.Errorf("Returned cache keys incorrect (%v!=%v)", keys, expectedKeys)
+	}
+	executer.assertCommands([]string{"stats items\r\n", "stats cachedump 123 456\n"})
+
 }
