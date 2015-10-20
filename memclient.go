@@ -19,7 +19,7 @@ const (
 	commands against a memcached server.
  */
 type CommandExecuter interface {
-	execute(command string) []string
+	execute(command string, delimiters []string) []string
 	Close()
 }
 
@@ -51,14 +51,17 @@ func (client *memClient) Close() {
 	}
 }
 
-func (executer *MemcachedCommandExecuter) execute(command string) []string {
+func (executer *MemcachedCommandExecuter) execute(command string, responseDelimiters []string) []string {
 	fmt.Fprintf(executer.connection, command + "\r\n")
 	scanner := bufio.NewScanner(executer.connection)
 	var result []string
+	OUTER:
 	for scanner.Scan() {
 		line := scanner.Text()
-		if line == "END" || line == "STORED" {
-			break
+		for _, delimeter := range responseDelimiters {
+			if line == delimeter {
+				break OUTER
+			}
 		}
 		result = append(result, line)
 	}
@@ -69,25 +72,42 @@ func (executer *MemcachedCommandExecuter) Close() {
 	executer.connection.Close()
 }
 
-func (client *memClient) Set(key string, value string) {
-	flags := "0" // TODO(jorisroovers): support flags
-	expiration := 0 // 0 = unlimited
-	command := fmt.Sprintf("set %s %s %d %d\r\n%s", key, flags, expiration, len(value), value)
-	client.executer.execute(command)
-}
-
+/*
+	Retrieves a given cache key from the memcached server.
+ */
 func (client *memClient) Get(key string) string {
 	command := fmt.Sprintf("get %s\r\n", key)
-	result := client.executer.execute(command)
+	result := client.executer.execute(command, []string{"END"})
 	if len(result) == 2 {
 		return result[1]
 	}
 	return "[NOT FOUND]"
 }
 
+/*
+	Sets a given cache key on the memcached server to a given value.
+ */
+func (client *memClient) Set(key string, value string) {
+	flags := "0" // TODO(jorisroovers): support flags
+	expiration := 0 // 0 = unlimited
+	command := fmt.Sprintf("set %s %s %d %d\r\n%s", key, flags, expiration, len(value), value)
+	client.executer.execute(command, []string{"STORED"})
+}
+
+/*
+	Deletes a given cache key on the memcached server.
+ */
+func (client *memClient) Delete(key string) {
+	command := fmt.Sprintf("delete %s\r\n", key)
+	client.executer.execute(command, []string{"DELETED", "NOT_FOUND"})
+}
+
+/*
+	List all cache keys on the memcached server.
+ */
 func (client *memClient) ListKeys() []string {
 	keys := []string{}
-	result := client.executer.execute("stats items\r\n")
+	result := client.executer.execute("stats items\r\n", []string{"END"})
 
 	// identify all slabs and their number of items by parsing the 'stats items' command
 	r, _ := regexp.Compile("STAT items:([0-9]*):number ([0-9]*)")
@@ -105,7 +125,7 @@ func (client *memClient) ListKeys() []string {
 	r, _ = regexp.Compile("ITEM (.*?) .*")
 	for slabId, slabCount := range slabCounts {
 		command := fmt.Sprintf("stats cachedump %v %v\n", slabId, slabCount)
-		commandResult := client.executer.execute(command)
+		commandResult := client.executer.execute(command, []string{"END"})
 		for _, item := range commandResult {
 			matches := r.FindStringSubmatch(item)
 			keys = append(keys, matches[1])
@@ -154,6 +174,14 @@ func main() {
 		cmd.Action = func() {
 			client := createClient(host, port)
 			fmt.Println(client.Get(*key))
+			client.Close()
+		}
+	})
+	cp.Command("delete", "Deletes a key", func(cmd *cli.Cmd) {
+		key := cmd.StringArg("KEY", "", "Key to delete")
+		cmd.Action = func() {
+			client := createClient(host, port)
+			client.Delete(*key)
 			client.Close()
 		}
 	})

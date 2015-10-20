@@ -15,6 +15,10 @@ wget https://raw.githubusercontent.com/jorisroovers/memclient/bin/linux/memclien
 # Mac OS X
 wget https://raw.githubusercontent.com/jorisroovers/memclient/bin/osx/memclient
 ```
+For the latest functionality, build memclient from source:
+```
+go build memclient.go
+```
 
 Example usage:
 ```bash
@@ -22,6 +26,8 @@ Example usage:
 memclient set mykey myvalue
 # To retrieve a key:
 memclient get mykey
+# To delete a key
+memclient delete mykey
 # To list all available keys
 memclient list
 ```
@@ -40,6 +46,7 @@ Options:
 Commands:
   set          Sets a key value pair
   get          Retrieves a key
+  delete       Deletes a key
   list         Lists all keys
 
 Run 'memclient COMMAND --help' for more information on a command.

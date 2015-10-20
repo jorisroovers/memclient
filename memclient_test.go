@@ -13,7 +13,7 @@ type MockedCommandExecuter struct {
 	closed           bool
 }
 
-func (executer *MockedCommandExecuter) execute(command string) []string {
+func (executer *MockedCommandExecuter) execute(command string, responseDelimiters []string) []string {
 	executer.executedCommands = append(executer.executedCommands, command)
 	returnVal, ok := executer.returnValues[command]
 	if ok {
@@ -67,6 +67,13 @@ func TestSet(t *testing.T) {
 	client.Set("testkey", "testval")
 	executer.assertCommands([]string{"set testkey 0 0 7\r\ntestval"})
 }
+
+func TestDelete(t *testing.T) {
+	client, executer := createTestClient(t)
+	client.Delete("testkey")
+	executer.assertCommands([]string{"delete testkey\r\n"})
+}
+
 
 func TestListKeys(t *testing.T) {
 	// setup testcase
