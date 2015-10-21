@@ -55,6 +55,7 @@ func (executer *MemcachedCommandExecuter) execute(command string, responseDelimi
 	fmt.Fprintf(executer.connection, command + "\r\n")
 	scanner := bufio.NewScanner(executer.connection)
 	var result []string
+
 	OUTER:
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -64,6 +65,12 @@ func (executer *MemcachedCommandExecuter) execute(command string, responseDelimi
 			}
 		}
 		result = append(result, line)
+		// if there is no delimiter specified, then the response is just a single line and we should return after
+		// reading that first line (e.g. version command)
+		if len(responseDelimiters) == 0 {
+			scanner.Scan()
+			return result
+		}
 	}
 	return result
 }
@@ -135,6 +142,17 @@ func (client *memClient) ListKeys() []string {
 	return keys
 }
 
+func (client *memClient) Version() string {
+	result := client.executer.execute("version \r\n", []string{})
+	if len(result) == 1 {
+		return result[0]
+	}
+	return "UNKNOWN"
+}
+
+func (client *memClient) Flush() {
+	client.executer.execute("flush_all \r\n", []string{"OK"})
+}
 
 /*
 	Creates a memClient and deals with any errors that might occur (e.g. unable to connect to server).
@@ -182,6 +200,21 @@ func main() {
 		cmd.Action = func() {
 			client := createClient(host, port)
 			client.Delete(*key)
+			client.Close()
+		}
+	})
+	description := "Flush all cache keys (they will still show in 'list', but will return 'NOT FOUND')"
+	cp.Command("flush", description, func(cmd *cli.Cmd) {
+		cmd.Action = func() {
+			client := createClient(host, port)
+			client.Flush()
+			client.Close()
+		}
+	})
+	cp.Command("version", "Show server version", func(cmd *cli.Cmd) {
+		cmd.Action = func() {
+			client := createClient(host, port)
+			fmt.Println(client.Version())
 			client.Close()
 		}
 	})

@@ -74,6 +74,26 @@ func TestDelete(t *testing.T) {
 	executer.assertCommands([]string{"delete testkey\r\n"})
 }
 
+func TestVersion(t *testing.T) {
+	client, executer := createTestClient(t)
+	version := client.Version()
+	executer.assertCommands([]string{"version \r\n"})
+	if (version != "UNKNOWN") {
+		t.Errorf("Received version does not match expected version (%v!=%v)", version, "VERSION myversion.1234")
+	}
+
+	executer.addReturnValue("version \r\n", []string{"VERSION myversion.1234"})
+	version = client.Version()
+	if (version != "VERSION myversion.1234") {
+		t.Errorf("Received version does not match expected version (%v!=%v)", version, "VERSION myversion.1234")
+	}
+}
+
+func TestFlush(t *testing.T) {
+	client, executer := createTestClient(t)
+	client.Flush()
+	executer.assertCommands([]string{"flush_all \r\n"})
+}
 
 func TestListKeys(t *testing.T) {
 	// setup testcase

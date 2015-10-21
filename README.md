@@ -30,6 +30,11 @@ memclient get mykey
 memclient delete mykey
 # To list all available keys
 memclient list
+# Flush all keys (they will still show in 'list', but will return 'NOT FOUND' when fetched using 'memclient get')
+memclient flush
+# Print the server version
+memclient version
+
 ```
 
 Other commands:
@@ -47,6 +52,8 @@ Commands:
   set          Sets a key value pair
   get          Retrieves a key
   delete       Deletes a key
+  flush        Flush all cache keys (they will still show in 'list', but will return 'NOT FOUND')
+  version      Show server version
   list         Lists all keys
 
 Run 'memclient COMMAND --help' for more information on a command.
@@ -86,10 +93,12 @@ Memclient uses the [Memcached protocol](https://github.com/memcached/memcached/b
 talk to a memcached server.
 
 # Wishlist #
-- Pretty command output
+- Pretty command output, use tables
+- List: only show keys that are still active (add option to also show expired keys)
 - Better error handling
 - Support for other memcached commands
 - Support for additional command options
 - Use GoDep for dependency management
 - Have a look at [GoDownDoc](https://github.com/robertkrimen/godocdown) for README generation from ```doc.go```
+- Some sort of integration test that runs against an actual memcached instance
 - ...
