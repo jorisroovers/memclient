@@ -52,7 +52,7 @@ func (client *memClient) Close() {
 }
 
 func (executer *MemcachedCommandExecuter) execute(command string, responseDelimiters []string) []string {
-	fmt.Fprintf(executer.connection, command + "\r\n")
+	fmt.Fprintf(executer.connection, command)
 	scanner := bufio.NewScanner(executer.connection)
 	var result []string
 
@@ -68,8 +68,7 @@ func (executer *MemcachedCommandExecuter) execute(command string, responseDelimi
 		// if there is no delimiter specified, then the response is just a single line and we should return after
 		// reading that first line (e.g. version command)
 		if len(responseDelimiters) == 0 {
-			scanner.Scan()
-			return result
+			break OUTER
 		}
 	}
 	return result
@@ -81,14 +80,15 @@ func (executer *MemcachedCommandExecuter) Close() {
 
 /*
 	Retrieves a given cache key from the memcached server.
+	Returns a string array with the value and a boolean indicating whether a value was found or not.
  */
-func (client *memClient) Get(key string) string {
+func (client *memClient) Get(key string) ([]string, bool) {
 	command := fmt.Sprintf("get %s\r\n", key)
 	result := client.executer.execute(command, []string{"END"})
-	if len(result) == 2 {
-		return result[1]
+	if len(result) >= 2 {
+		return result, true
 	}
-	return "[NOT FOUND]"
+	return []string{}, false
 }
 
 /*
@@ -191,7 +191,15 @@ func main() {
 		key := cmd.StringArg("KEY", "", "Key to set a value for")
 		cmd.Action = func() {
 			client := createClient(host, port)
-			fmt.Println(client.Get(*key))
+			result, ok := client.Get(*key)
+			if ok {
+				for _, line := range result {
+					fmt.Println(line)
+				}
+			}else {
+				fmt.Println("[NOT FOUND]")
+			}
+
 			client.Close()
 		}
 	})
