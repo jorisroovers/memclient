@@ -95,9 +95,8 @@ func (client *memClient) Get(key string) ([]string, bool) {
 /*
 	Sets a given cache key on the memcached server to a given value.
  */
-func (client *memClient) Set(key string, value string) {
+func (client *memClient) Set(key string, value string, expiration int) {
 	flags := "0" // TODO(jorisroovers): support flags
-	expiration := 0 // 0 = unlimited
 	command := fmt.Sprintf("set %s %s %d %d\r\n%s\r\n", key, flags, expiration, len(value), value)
 	client.executer.execute(command, []string{"STORED"})
 }
@@ -182,9 +181,10 @@ func main() {
 	cp.Command("set", "Sets a key value pair", func(cmd *cli.Cmd) {
 		key := cmd.StringArg("KEY", "", "Key to set a value for")
 		value := cmd.StringArg("VALUE", "", "Value to set")
+		expiration := cmd.IntOpt("expire", 0, "expiration time (in seconds)")
 		cmd.Action = func() {
 			client := createClient(host, port)
-			client.Set(*key, *value)
+			client.Set(*key, *value, *expiration)
 			client.Close()
 		}
 	})

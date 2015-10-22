@@ -27,9 +27,9 @@ func TestSetListGetDelete(t *testing.T) {
 
 
 	// Set some values and assert that they've been set correctly
-	memClient.Set("foo", "bar")
-	memClient.Set("test1", "value1")
-	memClient.Set("test2", "value2")
+	memClient.Set("foo", "bar", 0)
+	memClient.Set("test1", "value1", 0)
+	memClient.Set("test2", "value2", 0)
 
 	keys = memClient.ListKeys()
 	sort.Strings(keys)

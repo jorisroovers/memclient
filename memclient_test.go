@@ -66,8 +66,8 @@ func TestGet(t *testing.T) {
 
 func TestSet(t *testing.T) {
 	client, executer := createTestClient(t)
-	client.Set("testkey", "testval")
-	executer.assertCommands([]string{"set testkey 0 0 7\r\ntestval\r\n"})
+	client.Set("testkey", "testval", 123)
+	executer.assertCommands([]string{"set testkey 0 123 7\r\ntestval\r\n"})
 }
 
 func TestDelete(t *testing.T) {
