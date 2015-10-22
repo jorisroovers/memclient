@@ -86,7 +86,8 @@ func (client *memClient) Get(key string) ([]string, bool) {
 	command := fmt.Sprintf("get %s\r\n", key)
 	result := client.executer.execute(command, []string{"END"})
 	if len(result) >= 2 {
-		return result, true
+		// ditch the first "VALUE <key> <expiration> <length>" line
+		return result[1:], true
 	}
 	return []string{}, false
 }
@@ -97,7 +98,7 @@ func (client *memClient) Get(key string) ([]string, bool) {
 func (client *memClient) Set(key string, value string) {
 	flags := "0" // TODO(jorisroovers): support flags
 	expiration := 0 // 0 = unlimited
-	command := fmt.Sprintf("set %s %s %d %d\r\n%s", key, flags, expiration, len(value), value)
+	command := fmt.Sprintf("set %s %s %d %d\r\n%s\r\n", key, flags, expiration, len(value), value)
 	client.executer.execute(command, []string{"STORED"})
 }
 

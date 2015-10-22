@@ -84,9 +84,16 @@ go run memclient.go get foo
 go build memclient.go
 ```
 
-To run tests:
+To run the unit tests:
 ```
-go test
+go test -v
+```
+To run the integration tests (against the memcached server in vagrant):
+```
+vagrant up
+vagrant ssh
+# reset memcached server and run tests
+sudo systemctl restart memcached && go test -v -tags=integration
 ```
 
 Memclient uses the [Memcached protocol](https://github.com/memcached/memcached/blob/master/doc/protocol.txt) to
