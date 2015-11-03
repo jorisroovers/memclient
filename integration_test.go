@@ -14,7 +14,7 @@ const (
 
 // Actual integration tests
 
-func TestSetListGetDelete(t *testing.T) {
+func TestSetListGetDeleteStat(t *testing.T) {
 	memClient, err := MemClient(server)
 	if err != nil {
 		t.Errorf("Failed to connect to the memcached server")
@@ -24,7 +24,6 @@ func TestSetListGetDelete(t *testing.T) {
 	if !reflect.DeepEqual([]string{}, keys) {
 		t.Errorf("Expected %v, got %v. Make sure the memcached is empty", []string{}, keys)
 	}
-
 
 	// Set some values and assert that they've been set correctly
 	memClient.Set("foo", "bar", 0)
@@ -66,9 +65,17 @@ func TestSetListGetDelete(t *testing.T) {
 		t.Errorf("Expected %v, got %v.", expected, keys)
 	}
 
+	// Try to get a value that we didn't set and assert it cannot be found
 	_, ok = memClient.Get("foo")
 	if ok {
 		t.Errorf("memClient.Get('foobar') is returning a value, but it shouldn't")
+	}
+
+	// Get the cmd_get statistic and verify it is set to 5 (since we did 5 get operations)
+	cmdGet, ok := memClient.Stat("cmd_get")
+	expectedCmdGet := Stat{"cmd_get", "5"}
+	if !ok || cmdGet != expectedCmdGet {
+		t.Errorf("cmd_get statistic is not 5")
 	}
 
 }

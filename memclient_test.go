@@ -105,11 +105,46 @@ func TestListKeys(t *testing.T) {
 
 	keys := client.ListKeys()
 
-	// validate that the result is correct and that the expected commands where executed
+	// validate that the result is correct and that the expected commands were executed
 	expectedKeys := []string{"foobar", "testkey"}
 	if (!reflect.DeepEqual(keys, expectedKeys)) {
 		t.Errorf("Returned cache keys incorrect (%v!=%v)", keys, expectedKeys)
 	}
 	executer.assertCommands([]string{"stats items\r\n", "stats cachedump 123 456\n"})
-
 }
+
+func TestStats(t *testing.T) {
+	client, executer := createTestClient(t)
+	// return some random stats
+	returnStats := []string{"STAT time 1446586044", "STAT version 1.4.14 (Ubuntu)", "STAT libevent 2.0.21-stable"}
+	executer.addReturnValue("stats\r\n", returnStats)
+
+	stats := client.Stats()
+
+	// validate that the result is correct and that the expected commands were executed
+	expectedStats := []Stat{
+		Stat{"time", "1446586044"},
+		Stat{"version", "1.4.14 (Ubuntu)"},
+		Stat{"libevent", "2.0.21-stable"},
+	}
+	if (!reflect.DeepEqual(stats, expectedStats)) {
+		t.Errorf("Returned cache stats incorrect (%v!=%v)", stats, expectedStats)
+	}
+	executer.assertCommands([]string{"stats\r\n"})
+}
+
+func TestStat(t *testing.T) {
+	// setup testcase
+	client, executer := createTestClient(t)
+	returnStats := []string{"STAT time 1446586044", "STAT version 1.4.14 (Ubuntu)", "STAT libevent 2.0.21-stable"}
+	executer.addReturnValue("stats\r\n", returnStats)
+
+	time, ok := client.Stat("time")
+
+	expectedTime := Stat{"time", "1446586044"}
+	if (!ok || !reflect.DeepEqual(time, expectedTime)) {
+		t.Errorf("Returned cache stat incorrect (%v!=%v)", time, expectedTime)
+	}
+	executer.assertCommands([]string{"stats\r\n"})
+}
+

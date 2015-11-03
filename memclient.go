@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"github.com/jawher/mow.cli"
 )
 
@@ -30,6 +31,11 @@ type MemcachedCommandExecuter struct {
 type  memClient struct {
 	server   string
 	executer CommandExecuter
+}
+
+type Stat struct {
+	name  string
+	value string
 }
 
 func MemClient(server string) (*memClient, error) {
@@ -142,12 +148,42 @@ func (client *memClient) ListKeys() []string {
 	return keys
 }
 
+/*
+   Get the server version.
+ */
 func (client *memClient) Version() string {
 	result := client.executer.execute("version \r\n", []string{})
 	if len(result) == 1 {
 		return result[0]
 	}
 	return "UNKNOWN"
+}
+
+/*
+	Retrieve all server statistics.
+ */
+func (client *memClient) Stats() []Stat {
+	result := client.executer.execute("stats\r\n", []string{"END"})
+	stats := []Stat{}
+	for _, stat := range result {
+		parts := strings.SplitN(stat, " ", 3)
+		stats = append(stats, Stat{parts[1], parts[2]})
+	}
+
+	return stats
+}
+
+/*
+	Retrieve a specific server statistic.
+ */
+func (client *memClient) Stat(statName string) (Stat, bool) {
+	stats := client.Stats()
+	for _, stat := range stats {
+		if stat.name == statName {
+			return stat, true
+		}
+	}
+	return Stat{}, false
 }
 
 func (client *memClient) Flush() {
@@ -197,7 +233,7 @@ func main() {
 				for _, line := range result {
 					fmt.Println(line)
 				}
-			}else {
+			} else {
 				fmt.Println("[NOT FOUND]")
 			}
 
@@ -233,6 +269,29 @@ func main() {
 			keys := client.ListKeys()
 			for _, item := range keys {
 				fmt.Println(item)
+			}
+			client.Close()
+		}
+	})
+	cp.Command("stats", "Print server statistics", func(cmd *cli.Cmd) {
+		cmd.Action = func() {
+			client := createClient(host, port)
+			stats := client.Stats()
+			for _, stat := range stats {
+				fmt.Printf("%-25v %v\n", stat.name, stat.value)
+			}
+			client.Close()
+		}
+	})
+	cp.Command("stat", "Print a specific server statistic", func(cmd *cli.Cmd) {
+		statName := cmd.StringArg("STAT", "", "Name of the statistic to get")
+		cmd.Action = func() {
+			client := createClient(host, port)
+			stat, ok := client.Stat(*statName)
+			if ok {
+				fmt.Printf("%-25v %v\n", stat.name, stat.value)
+			} else {
+				fmt.Println("[NOT FOUND]")
 			}
 			client.Close()
 		}

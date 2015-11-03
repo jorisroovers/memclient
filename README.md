@@ -55,6 +55,8 @@ Commands:
   flush        Flush all cache keys (they will still show in 'list', but will return 'NOT FOUND')
   version      Show server version
   list         Lists all keys
+  stats        Print server statistics
+  stat         Print a specific server statistic
 
 Run 'memclient COMMAND --help' for more information on a command.
 ```
@@ -107,5 +109,4 @@ talk to a memcached server.
 - Support for additional command options
 - Use GoDep for dependency management
 - Have a look at [GoDownDoc](https://github.com/robertkrimen/godocdown) for README generation from ```doc.go```
-- Some sort of integration test that runs against an actual memcached instance
 - ...
