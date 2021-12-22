@@ -1,26 +1,18 @@
-# memclient #
-[![Build Status](https://travis-ci.org/jorisroovers/memclient.svg?branch=master)]
-(https://travis-ci.org/jorisroovers/memclient)
-[![GoDoc](https://godoc.org/github.com/jorisroovers/memclient?status.svg)]
-(https://godoc.org/github.com/jorisroovers/memclient)
+# memclient with Apple Silicon Support
 
-Memclient is a simple memcached commandline client written in Go.
+Memclient is a simple memcached commandline client written in Go. Originally from: https://github.com/jorisroovers/memclient
+
+This version differs from the original in that it
+1. Produces a release which works with Apple Silicon
+2. Removes the Vagrant/Travis stuff from code since I don't use that
+3. Now uses go modules
+4. Specify `cli` in the `import` so golang doesn't remove it automatically
+5. Updated gitignore
 
 **Memclient is very much under development and still missing some fundamental features**
 
-Installation:
-```
-# Linux
-wget https://raw.githubusercontent.com/jorisroovers/memclient/bin/linux/memclient
-# Mac OS X
-wget https://raw.githubusercontent.com/jorisroovers/memclient/bin/osx/memclient
-```
-For the latest functionality, build memclient from source:
-```
-go build memclient.go
-```
-
 Example usage:
+
 ```bash
 # To set a key:
 memclient set mykey myvalue
@@ -38,6 +30,7 @@ memclient version
 ```
 
 Other commands:
+
 ```bash
 Usage: memclient [OPTIONS] COMMAND [arg...]
 
@@ -61,52 +54,13 @@ Commands:
 Run 'memclient COMMAND --help' for more information on a command.
 ```
 
-# Why memclient? #
-1. I couldn't find a simple commandline tool for easily inspecting the data stored by a memcached server
-2. I was looking for a good opportunity to get some more experience with Go :-)
-
-# Contributing #
-I'd love for you to contribute to memclient. Just open a pull request and I'll get right on it! 
-You can find a wishlist below, but I'm obviously open to any suggestions you might have!
-
-# Development #
-There is a Vagrantfile in this repository that can be used for development.
-
-```bash  
-vagrant up
-vagrant ssh
-```
-
-To run/build memclient:
-
-```bash
-go get github.com/jawher/mow.cli
-go run memclient.go set foo bar
-go run memclient.go get foo
-go build memclient.go
-```
-
-To run the unit tests:
-```
-go test -v
-```
-To run the integration tests (against the memcached server in vagrant):
-```
-vagrant up
-vagrant ssh
-# reset memcached server and run tests
-sudo systemctl restart memcached && go test -v -tags=integration
-```
+# Contributing
 
 Memclient uses the [Memcached protocol](https://github.com/memcached/memcached/blob/master/doc/protocol.txt) to
 talk to a memcached server.
 
-# Wishlist #
-- Pretty command output, use tables
-- List: only show keys that are still active (add option to also show expired keys)
-- Better error handling
-- Support for other memcached commands
-- Support for additional command options
-- Use GoDep for dependency management
-- Have a look at [GoDownDoc](https://github.com/robertkrimen/godocdown) for README generation from ```doc.go```
-- ...
+To build memclient from source:
+
+```
+go build memclient.go
+```

@@ -1,14 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
-	"bufio"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-	"github.com/jawher/mow.cli"
+
+	cli "github.com/jawher/mow.cli"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 /*
 	The CommandExecuter interface defines an entity that is able to execute memcached
 	commands against a memcached server.
- */
+*/
 type CommandExecuter interface {
 	execute(command string, delimiters []string) []string
 	Close()
@@ -28,7 +29,7 @@ type MemcachedCommandExecuter struct {
 	connection net.Conn
 }
 
-type  memClient struct {
+type memClient struct {
 	server   string
 	executer CommandExecuter
 }
@@ -62,7 +63,7 @@ func (executer *MemcachedCommandExecuter) execute(command string, responseDelimi
 	scanner := bufio.NewScanner(executer.connection)
 	var result []string
 
-	OUTER:
+OUTER:
 	for scanner.Scan() {
 		line := scanner.Text()
 		for _, delimeter := range responseDelimiters {
@@ -87,7 +88,7 @@ func (executer *MemcachedCommandExecuter) Close() {
 /*
 	Retrieves a given cache key from the memcached server.
 	Returns a string array with the value and a boolean indicating whether a value was found or not.
- */
+*/
 func (client *memClient) Get(key string) ([]string, bool) {
 	command := fmt.Sprintf("get %s\r\n", key)
 	result := client.executer.execute(command, []string{"END"})
@@ -100,7 +101,7 @@ func (client *memClient) Get(key string) ([]string, bool) {
 
 /*
 	Sets a given cache key on the memcached server to a given value.
- */
+*/
 func (client *memClient) Set(key string, value string, expiration int) {
 	flags := "0" // TODO(jorisroovers): support flags
 	command := fmt.Sprintf("set %s %s %d %d\r\n%s\r\n", key, flags, expiration, len(value), value)
@@ -109,7 +110,7 @@ func (client *memClient) Set(key string, value string, expiration int) {
 
 /*
 	Deletes a given cache key on the memcached server.
- */
+*/
 func (client *memClient) Delete(key string) {
 	command := fmt.Sprintf("delete %s\r\n", key)
 	client.executer.execute(command, []string{"DELETED", "NOT_FOUND"})
@@ -117,7 +118,7 @@ func (client *memClient) Delete(key string) {
 
 /*
 	List all cache keys on the memcached server.
- */
+*/
 func (client *memClient) ListKeys() []string {
 	keys := []string{}
 	result := client.executer.execute("stats items\r\n", []string{"END"})
@@ -150,7 +151,7 @@ func (client *memClient) ListKeys() []string {
 
 /*
    Get the server version.
- */
+*/
 func (client *memClient) Version() string {
 	result := client.executer.execute("version \r\n", []string{})
 	if len(result) == 1 {
@@ -161,7 +162,7 @@ func (client *memClient) Version() string {
 
 /*
 	Retrieve all server statistics.
- */
+*/
 func (client *memClient) Stats() []Stat {
 	result := client.executer.execute("stats\r\n", []string{"END"})
 	stats := []Stat{}
@@ -175,7 +176,7 @@ func (client *memClient) Stats() []Stat {
 
 /*
 	Retrieve a specific server statistic.
- */
+*/
 func (client *memClient) Stat(statName string) (Stat, bool) {
 	stats := client.Stats()
 	for _, stat := range stats {
@@ -192,8 +193,8 @@ func (client *memClient) Flush() {
 
 /*
 	Creates a memClient and deals with any errors that might occur (e.g. unable to connect to server).
- */
-func createClient(host, port *string) (*memClient) {
+*/
+func createClient(host, port *string) *memClient {
 	server := *host + ":" + *port
 	client, err := MemClient(server)
 	if err != nil {
@@ -207,10 +208,10 @@ func createClient(host, port *string) (*memClient) {
 	This is where the magic happens.
 	Creates a CLI app using mow.cli and to calls the appropriate functions on a Memclient instance according to the
 	passed parameters.
- */
+*/
 func main() {
 	cp := cli.App("memclient", "Simple command-line client for Memcached")
-	cp.Version("v version", "memclient " + VERSION)
+	cp.Version("v version", "memclient "+VERSION)
 	host := cp.StringOpt("host h", "localhost", "Memcached host (or IP)")
 	port := cp.StringOpt("port p", "11211", "Memcached port")
 
